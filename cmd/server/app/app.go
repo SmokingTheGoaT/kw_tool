@@ -3,28 +3,30 @@ package app
 import (
 	"github.com/hibiken/asynq"
 	"kw_tool/handler"
-	asynq2 "kw_tool/util/asynq"
+	local "kw_tool/util/asynq"
 	"kw_tool/util/constants"
 	"kw_tool/util/protocol/http2"
 )
 
 type KWTool struct {
 	server       *http2.Server
-	client       *asynq.Client
-	schedulerSrv *asynq2.Server
+	client       *local.Client
+	schedulerSrv *local.Server
 }
 
 func (k *KWTool) Init() (err error) {
 	redisOpts := asynq.RedisClientOpt{Addr: constants.RedisAddr}
 	asynqCfs := asynq.Config{Concurrency: 10}
-	k.client = asynq.NewClient(redisOpts)
+	client := &local.Client{}
+	client.Init(redisOpts)
+	k.client = client
 	defer func(client *asynq.Client) {
 		err = client.Close()
 		if err != nil {
 
 		}
-	}(k.client)
-	k.schedulerSrv = asynq2.New(redisOpts, asynqCfs)
+	}(k.client.Cli)
+	k.schedulerSrv = local.New(redisOpts, asynqCfs)
 	if err = k.schedulerSrv.Init(); err != nil {
 		return
 	}

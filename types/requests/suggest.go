@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq"
 	"github.com/patrickmn/go-cache"
 	"io/ioutil"
-	"kw_tool/tasks"
 	"kw_tool/types/crawler"
 	"kw_tool/types/keyword"
+	"kw_tool/util/asynq"
 	"kw_tool/util/common"
 	"kw_tool/util/constants"
 	"kw_tool/util/enums"
@@ -98,20 +97,9 @@ func (r *Suggest) Run() (err error) {
 
 func (r *Suggest) enqueue() (err error) {
 	if r.cfg.iteration == 0 {
-		err = r.task(time.Duration(0))
+		err = r.cfg.client.Enqueue(r, time.Duration(0))
 	} else {
-		err = r.task(common.GetNextTaskExecutionTime(9000, 18000))
-	}
-	return
-}
-
-func (r *Suggest) task(t time.Duration) (err error) {
-	var task *asynq.Task
-	if task, err = tasks.NewRecursiveCrawlTask(r, t); err == nil {
-		var info *asynq.TaskInfo
-		if info, err = r.cfg.client.Enqueue(task); err == nil {
-			log.Println(fmt.Sprintf("enqueued task: id=%s queue=%s", info.ID, info.Queue))
-		}
+		err = r.cfg.client.Enqueue(r, common.GetNextTaskExecutionTime(9000, 18000))
 	}
 	return
 }
